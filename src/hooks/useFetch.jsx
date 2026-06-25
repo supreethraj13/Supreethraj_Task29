@@ -1,72 +1,26 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 
-// Simple in-memory cache for requests in this session.
-const cache = new Map()
-
-const useFetch = (url, options = {}) => {
+function useFetch(url) {
   const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [reloadCount, setReloadCount] = useState(0)
-
-  const optionsJson = JSON.stringify(options)
-  const cacheKey = `${url}|${optionsJson}`
 
   useEffect(() => {
-    if (!url) return
-
-    const controller = new AbortController()
-    const signal = controller.signal
-
-    const loadData = async () => {
-      setLoading(true)
-      setError(null)
-
-      if (cache.has(cacheKey)) {
-        setData(cache.get(cacheKey))
+    // Fetch data when URL changes
+    fetch(url)
+      .then((response) => response.json())
+      .then((result) => {
+        setData(result)
         setLoading(false)
-        return
-      }
+        setError(null)
+      })
+      .catch((err) => {
+        setError(err.message)
+        setLoading(false)
+      })
+  }, [url])
 
-      try {
-        const response = await fetch(url, {
-          ...options,
-          signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(`Fetch failed: ${response.status}`)
-        }
-
-        const json = await response.json()
-        cache.set(cacheKey, json)
-
-        if (!signal.aborted) {
-          setData(json)
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'Fetch failed')
-        }
-      } finally {
-        if (!signal.aborted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadData()
-
-    return () => {
-      controller.abort()
-    }
-  }, [url, optionsJson, cacheKey, reloadCount])
-
-  const refetch = useCallback(() => {
-    setReloadCount((count) => count + 1)
-  }, [])
-
-  return { data, loading, error, refetch }
+  return { data, loading, error }
 }
 
 export default useFetch
