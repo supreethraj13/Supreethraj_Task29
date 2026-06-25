@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 
-function useFetch(url) {
+function useFetch(url, options = {}) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     // Fetch data when URL changes
-    fetch(url)
+    fetch(url, options)
       .then((response) => response.json())
       .then((result) => {
         setData(result)
@@ -18,7 +18,7 @@ function useFetch(url) {
         setError(err.message)
         setLoading(false)
       })
-  }, [url])
+  }, [url, JSON.stringify(options)])
 
   return { data, loading, error }
 }
